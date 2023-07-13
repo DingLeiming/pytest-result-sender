@@ -1,0 +1,22 @@
+
+[project]
+name = "pytest-result-sender"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "", email = "leimingding9707@gmail.com"},
+]
+dependencies = []
+requires-python = ">=3.9"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project.entry-points.pytestll]
+result_log = "pytest_result_sender.plugin"
+
+[tool.pdm.build]
+package-dir = "src"
