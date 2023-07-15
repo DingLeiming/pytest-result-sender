@@ -9,6 +9,19 @@ data = {
 }
 
 
+def pytest_addoption(parser):
+    parser.addini(
+        'send_when',
+        help="何时发送结果？"
+
+    )
+    parser.addini(
+        'send_api',
+        help="发往何处?"
+
+    )
+
+
 def pytest_runtest_logreport(report: pytest.TestReport):
     if report.when == "call":
         data[report.outcome] += 1
@@ -19,10 +32,12 @@ def pytest_collection_finish(session: pytest.Session):
     print("用例总数:", data["total"])
 
 
-def pytest_configure():
+def pytest_configure(config: pytest.Config):
     # 配置加载完毕执行，测试用例执行之前执行
     data["start_time"] = datetime.now()
     print(f"{datetime.now()}pytest开始执行了")
+    data["send_when"] = config.getini("send_when")
+    data["send_api"] = config.getini("send_api")
 
 
 def pytest_unconfigure():
@@ -36,8 +51,17 @@ def pytest_unconfigure():
     # assert data['total'] == 3
     # assert data['passed'] == 2
     # assert data['failed'] == 1
+    send_result()
 
-    url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ebee6bbe-d60f-4db6-9c6d-ed03caa38429"
+
+def send_result():
+    if not data["send_api"]:
+        return
+    if data["send_when"] == 'never':
+        return
+    if data["send_when"] == 'on_fail' and data["failed"] == 0:
+        return
+    url = data["send_api"]
     content = (
         f"""
     pytest自动化测试结果
@@ -50,4 +74,9 @@ def pytest_unconfigure():
     """
         ""
     )
-    requests.post(url, json={"msgtype": "markdown", "markdown": {"content": content}})
+    try:
+        requests.post(url, json={"msgtype": "markdown", "markdown": {"content": content}})
+    except Exception:
+        pass
+
+    data['send_done'] = 1  # 发送成功
